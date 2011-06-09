@@ -1,0 +1,65 @@
+<?php
+/**
+ * @file
+ */
+// $id
+
+/**
+ * Implemetation hook_comment().
+ * after commented, send the comment to renren with user renren account.
+ */
+function renren_comment_comment(&$a1, $op) {
+  if ($op == 'insert') {
+    global $user;
+    $types = variable_get('');
+    $node = node_load($a1->nid);
+    $allow_types = variable_get('renren_enable_types', array());
+    if (renren_user_is_logined_in() && user_access('share comment with renren') && renren_client() && isset($allow_types[$node->type])) {
+      require_once drupal_get_path('module', 'renren') . '/renren.inc';
+      $response = renren_publish_seed($a1['comment']);
+      if ($response->error_code) {
+        drupal_set_message(t('Sorry, there have error with Renren APP settings. Please contact site administrator to fix it.'), 'error');
+      }
+    }
+  }
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function renren_comment_menu() {
+  return array(
+    'admin/settings/renren_connect/comment' => array(
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('renren_comment_settings_form'),
+      'access arguments' => array('admin comment share type with renren'),
+      'page title' => t('Select the type that user can share with renren'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function renren_comment_perm() {
+  return array('admin comment share type with renren', 'share comment with renren');
+}
+
+/**
+ * Settings form for comment share with renren
+ */
+function renren_comment_settings_form(&$form_state) {
+  $form = array();
+    // comments
+  $forms['renren_settings']['renren_comment'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Choose and select renren comment settings'),
+  );
+  $forms['renren_settings']['renren_comment']['renren_enable_types'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Choose and select renren comment settings'),
+    '#options' => node_get_types('names'),
+    '#default_value' => variable_get('renren_enable_types', array()),
+  );
+  return system_settings_form($forms);
+}

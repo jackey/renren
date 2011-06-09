@@ -1,0 +1,4 @@
+name=Share comment on Renren
+description=''
+dependencies[]=renren
+core=6.x

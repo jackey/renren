@@ -1,0 +1,141 @@
+<?php
+/**
+ * @file
+ */
+
+// $Id$
+
+/**
+ * Implementation of hook_init().
+ */
+function renren_init() {
+  require_once drupal_get_path('module', 'renren') . '/renren.inc';
+  renren_init_client(variable_get('renren_api_key', ''), variable_get('renren_api_secret', ''));
+  global $renren_account;
+  if (isset($_SESSION['renren_account'])) {
+    $renren_account = $_SESSION['renren_account'];
+  }
+}
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function renren_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == 'user_login') {
+    if ($renen_login = renren_get_authurl()) {
+      $form['renren_signin'] = array(
+        '#value' => theme('item_list', array(theme('renren_login', $renen_login))),
+      );
+    }
+  }
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function renren_menu() {
+  return array(
+    'renren/redirect' => array(
+      'page callback' => 'handle_renren_auth_redirect',
+      'access callback' => TRUE
+    ),
+    'renren/profile' => array(
+      'page callback' => 'renren_profile',
+      'access arguments' => array('access renren profile'),
+    ),
+    'admin/settings/renren_connect' => array(
+      'title' => 'Set your Renren Key and Secret',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('renren_connection_settings'),
+      'access arguments' => array('manage renren connection'),
+      'type' => MENU_NORMAL_ITEM,
+      'file' => 'renren.form.inc',
+      'weight' => 10,
+    ),
+    'admin/settings/renren_connect/settings' => array(
+      'title' => 'Renren settings',
+      'weight' => -10,
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    ),
+    'admin/settings/renren_connect/renren_template_pattern' => array(
+      'title' => 'Renren Action template settings',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('renren_action_template_settings'),
+      'access arguments' => array('manage renren connection'),
+      'file' => 'renren.form.inc',
+      'type' => MENU_LOCAL_TASK,
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function renren_theme() {
+  return array(
+    'renren_login' => array(
+      'arguments' => array('url' => ''),
+    ),
+    'renren_profile' => array(
+      'arguments' => array('renren_profile' => NULL),
+      'templates' => 'renren-profile',
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function renren_perm() {
+  return array('manage renren connection', 'access renren profile', 'post renren comment');
+}
+
+/**
+ * The theme for login link of renren
+ * @param $url
+ */
+function theme_renren_login($url) {
+  return '<a href="' . $url . '">' . t('Login with Renren') . '</a>';
+}
+
+/**
+ * The redirect URL of Renren auth
+ */
+function handle_renren_auth_redirect() {
+  $code = $_GET['code'];
+  if (isset($code)) {
+    renren_fetch_token($code);
+    $mapping_user = renren_create_account(renren_user_profile());
+    global $user;
+    $user = $mapping_user;
+    return t('You have login with renren account. redirect to !user home.', array('!user' => l('user', 'user')));
+  }
+  else {
+    return t('Miss the code of auth');
+  }
+}
+
+/**
+ * The profile of renren account
+ */
+function renren_profile() {
+  return theme('renren_profile', renren_user_profile());
+}
+
+/**
+ * Check status of logined with Renren
+ */
+function renren_user_is_logined_in() {
+  if (renren_user_profile()->uid) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Return the client object of Renren client
+ */
+function renren_client() {
+  global $renren;
+  return $renren;
+}

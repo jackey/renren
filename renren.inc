@@ -79,6 +79,7 @@ class RenrenClient extends RESTClient {
       return NULL;
     }
     $method = str_replace('_', '.', $method);
+    dpm($method);
     $params = array(
       'access_token' => $_SESSION['renren_access_token']->access_token,
       'method' => $method,
@@ -86,6 +87,9 @@ class RenrenClient extends RESTClient {
       'v' => '1.0',
       'format' => 'json',
     );
+    if (is_array($arguments)) {
+      $params = array_merge($params, $arguments[0]);
+    }
     ksort($params);
     reset($params);
     
@@ -96,9 +100,6 @@ class RenrenClient extends RESTClient {
 
     $sig = md5($sig . $this->config['client_secret']);
     $params['sig'] = $sig;
-    if (is_array($arguments[0])) {
-      $params = array_merge($params, $arguments[0]);
-    }
     $response = $this->_POST($this->server_url, $params);
     
     return $response;
@@ -224,13 +225,21 @@ function renren_create_account($renren_profile = NULL) {
   if (!empty($mapping_user)) {
     return user_load($mapping_user->uid);
   }
+  if (user_load(array('name' => check_plain($renren_profile->name)))) {
+    // The user name already exit
+    $name = $renren_profile->name .$renren_profile->uid;
+  }
+  else {
+    $name = $renren_profile->name;
+  }
   $user_edit = array(
-      'name' => check_plain($renren_profile->name),
+      'name' => check_plain($name),
       'mail' => 'example@example.com',
       'pass' => user_password(),
       'status' => 1,
-      'init' => check_plain($renren_profile->name),
+      'init' => check_plain($name),
       'access' => time(),
+      'picture' => $renren_profile->tiny,
     );
   $user = user_save(NULL, $user_edit);
   

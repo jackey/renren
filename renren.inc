@@ -79,7 +79,6 @@ class RenrenClient extends RESTClient {
       return NULL;
     }
     $method = str_replace('_', '.', $method);
-    dpm($method);
     $params = array(
       'access_token' => $_SESSION['renren_access_token']->access_token,
       'method' => $method,
@@ -87,7 +86,7 @@ class RenrenClient extends RESTClient {
       'v' => '1.0',
       'format' => 'json',
     );
-    if (is_array($arguments)) {
+    if (is_array($arguments[0])) {
       $params = array_merge($params, $arguments[0]);
     }
     ksort($params);

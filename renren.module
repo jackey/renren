@@ -78,7 +78,6 @@ function renren_theme() {
     ),
     'renren_profile' => array(
       'arguments' => array('renren_profile' => NULL),
-      'templates' => 'renren-profile',
     ),
   );
 }
@@ -95,7 +94,15 @@ function renren_perm() {
  * @param $url
  */
 function theme_renren_login($url) {
-  return '<a href="' . $url . '">' . t('Login with Renren') . '</a>';
+  return '<a id= "renren_login_link" href="' . $url . '">' . t('Login with Renren') . '</a>';
+}
+
+/**
+ * The theme for renren profile
+ * @profile
+ */
+function theme_renren_profile($profile) {
+  return '<label>'.t('Renren ').'</label><span class="renren-profile">'.$profile->name.'</span>';
 }
 
 /**

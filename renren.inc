@@ -217,21 +217,39 @@ function renren_publish_blog($title, $content, $visible = '99', $password = '') 
  * Renren create account.
  */
 function renren_create_account($renren_profile = NULL) {
+  global $user;
   if ($renren_profile == NULL) {
     return;
   }
   $mapping_user = db_fetch_object(db_query('SELECT * FROM {renren_account_mapping} WHERE renren_uid = %d', array($renren_profile->uid)));
-  if (!empty($mapping_user)) {
-    return user_load($mapping_user->uid);
+    // User logined
+  if ($user->uid) {
+      // The same account login renren
+    if (!empty($mapping_user)) {
+      if ($user->uid != $mapping_user->uid) {
+         // Change the user mapping with renren uid
+        db_query('UPDATE {renren_account_mapping} SET uid = %d WHERE renren_uid = %d', array($user->uid, $renren_profile->uid));
+      }
+    }
+    else {
+      // Add new one mapping.
+      renren_add_mapping($user, $renren_profile);
+    }
+    return $user;
   }
-  if (user_load(array('name' => check_plain($renren_profile->name)))) {
+    // User did not login
+  else {
+   if (!empty($mapping_user)) {
+    return user_load($mapping_user->uid);
+   }
+   if (user_load(array('name' => check_plain($renren_profile->name)))) {
     // The user name already exit
     $name = $renren_profile->name .$renren_profile->uid;
-  }
-  else {
+   }
+   else {
     $name = $renren_profile->name;
-  }
-  $user_edit = array(
+   }
+   $user_edit = array(
       'name' => check_plain($name),
       'mail' => 'example@example.com',
       'pass' => user_password(),
@@ -239,15 +257,16 @@ function renren_create_account($renren_profile = NULL) {
       'init' => check_plain($name),
       'access' => time(),
       'picture' => $renren_profile->tiny,
-    );
-  $user = user_save(NULL, $user_edit);
-  
-  if ($user->uid) {
+   );
+   $user = user_save(NULL, $user_edit);
+
+   if ($user->uid) {
     renren_add_mapping($user, $renren_profile);
     drupal_set_message(t('Added drupal account with renren profile. You must login and change it.'));
     return $user;
+   }
+   return NULL;
   }
-  return NULL;
 }
 
 /**
